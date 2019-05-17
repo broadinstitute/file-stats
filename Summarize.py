@@ -19,33 +19,29 @@ def summarize_disk_usage(infile):
     sizeBin3=10000000000
     with open(infile, 'r') as csvfile:
         reader = csv.DictReader(f=csvfile,dialect='excel-tab',lineterminator= '\n',quoting=csv.QUOTE_NONE)
-	fileCnt = Counter()
-	fileSize = Counter()
-	fileSizeBin1 = Counter()
-	fileSizeBin2 = Counter()
-	fileSizeBin3 = Counter()
-	fileSizeBin4 = Counter()
-	fileTotSizeBin1 = Counter()
-	fileTotSizeBin2 = Counter()
-	fileTotSizeBin3 = Counter()
-	fileTotSizeBin4 = Counter()
-        for row in reader:
+        info_by_user = dict()
+	for row in reader:
             user = row['username']
-	    fileCnt[user] += 1
-	    fileSize[user] += row['size']
-	    if row['size'] <= sizeBin1:
-	        fileSizeBin1[user] += 1
-	        fileTotSizeBin1[user] += row['size']
-	    elif row['size'] <= sizeBin2:
-	        fileSizeBin2[user] += 1
-	        fileTotSizeBin2[user] += row['size']
-	    elif row['size'] <= sizeBin3:
-	        fileSizeBin3[user] += 1
-	        fileTotSizeBin3[user] += row['size']
+	    size = int(row['size'])
+	    print(size)
+	    if user not in info_by_user:
+	        info_by_user[user] = Counter()
+	    info_by_user[user]["fileCnt"] += 1
+	    info_by_user[user]["fileSize"] += size
+	    if size <= sizeBin1:
+	        info_by_user[user]["fileCntBin1"] += 1
+	        info_by_user[user]["fileSizeBin1"] += size
+	    elif size <= sizeBin2:
+	        info_by_user[user]["fileCntBin2"] += 1
+	        info_by_user[user]["fileSizeBin2"] += size
+	    elif size <= sizeBin3:
+	        info_by_user[user]["fileCntBin3"] += 1
+	        info_by_user[user]["fileSizeBin3"] += size
 	    else:
-	        fileSizeBin4[user] += 1
-	        fileTotSizeBin4[user] += row['size']
-        print(cnt)
+	        info_by_user[user]["fileCntBin4"] += 1
+	        info_by_user[user]["fileSizeBin4"] += size
+    
+    print(info_by_user)
 
     
 
