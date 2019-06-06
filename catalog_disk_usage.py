@@ -3,7 +3,7 @@ Given a directory to begin from, and a directory to write an output file into, g
 Walks all subdirectories.
 
 To Do:
-- Additional data to collect: permissions (group name, group readable? others readable?), soft links.
+- DONE - Additional data to collect: permissions (group name, group readable? others readable?), soft links.
 
 - Mitigate bad characters in the filenames, eg newline, tab, doublequote, others that are not allowed as bucket object names.
 
@@ -40,21 +40,8 @@ import pwd  # To retrieve user name using uid.
 import grp  # To retrieve group name using gid.
 import collections
 import argparse
+import cga_util  # Be sure to put cga_util in a findable location.
 
-#requires use .genetorrent-3.8.3
-
-scr = sys.argv[0]  # Name of this program as it was invoked.
-scr = os.path.abspath(scr)  # Include the full path of the invoked command.
-scr_list = scr.split('/')  # Create a list from the directory names of the path.
-util_path = '/'.join(scr_list[:-4] + ['trunk','Python','util'])  # Create a string /trunk/Python/util.
-sys.path.append(util_path)  # Postpend the util path to the current shells PATH environment variable. 
-
-# output_prefix = "/broad/hptmp/ragone/disk_clearing_2019/"  # Path must exist.
-
-cga_util_path = "/xchip/cga_home/gsaksena/svn/CancerGenomeAnalysis/trunk/Python/util/"
-sys.path.append(cga_util_path)
-
-import cga_util
 
 ####################################################################
 # Accept the start directory and the directory for the output file
@@ -74,45 +61,36 @@ args=parser.parse_args()
 def initialize_csv(outpath, info_list):
     with open(outpath,'w', newline='') as csvfile:  # Per recommendation https://docs.python.org/3/library/csv.html
         fieldnames = info_list[0].keys()
-        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator= '\n',fieldnames=fieldnames,quoting=csv.QUOTE_NONE)
+        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_MINIMAL)
         outdict.writeheader()
 
 def write_to_csv(outpath, info_list):
     with open(outpath,'a', newline='') as csvfile:  # Per recommendation https://docs.python.org/3/library/csv.html
         fieldnames = info_list[0].keys()
-        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator= '\n',fieldnames=fieldnames,quoting=csv.QUOTE_NONE,escapechar='\\')
+        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_MINIMAL,escapechar='\\')
         outdict.writerows(info_list)
 
 def get_login_name(id):
     try:
         uid_struct = pwd.getpwuid(id)
         login_name = uid_struct[0]
-#        owner = uid_struct[4]
     except:
         login_name = str(id)
-#        owner = str(id)
     return login_name
     
 def get_group_name(id):  # id of group that owns file. An int
     try:
         gid_struct = grp.getgrgid(id)
         group_name = gid_struct[0]
-#        group = gid_struct[2]
     except:
         group_name = str(id)
-#        group = str(id)
     return group_name
 
 def get_group_readable(mode):
-#    mode_string = stat.filemode(mode)  # String of form -rwxrwxrwx
-#    return mode_string[4]
     return bool(mode & stat.S_IRGRP)  # Boolean and with mask for group readable.
 
 def get_all_readable(mode):
-#    mode_string = stat.filemode(mode)  # String of form -rwxrwxrwx
-#    return mode_string[7]
     return bool(mode & stat.S_IROTH)  # Boolean and with mask for others-readable.
-
 
 def get_inode_str(inode):
     return '"%d"'%inode
@@ -126,7 +104,6 @@ def catalog_disk_usage(rootdir, outpath):
     file_info_list = []
     i = 0
     new_file = True
-#    fieldnames = ['filepath','size','ext','last_access','last_modified','username','nlink','inode','groupname','parentdir0','parentdir1','parentdir2','parentdir3']
 
     for (basedir, dirs, fns) in os.walk(rootdir):
 
@@ -144,11 +121,9 @@ def catalog_disk_usage(rootdir, outpath):
 
             if not stat.S_ISREG(statinfo.st_mode):  # Only report for regular files.
                 continue
-#            if stat.S_ISLNK(statinfo.st_mode):  # Ignore file because it is a symlink.  
-#                continue
             
             file_info = collections.OrderedDict({  # Py 3.6 dicts are ordered, but do this to ensure order in any py version.
-                "filepath": filepath.replace('\n',r'\n'),
+                "filepath": filepath.replace('\n',r'\n'),  # Add more fixes, perhaps from ejon and Sam Novod experiences.
                 "size": str(statinfo.st_size),
                 "last_access": cga_util.get_timestamp(statinfo.st_atime),
                 "last_modified": cga_util.get_timestamp(statinfo.st_mtime),
@@ -161,9 +136,6 @@ def catalog_disk_usage(rootdir, outpath):
                 "inode": get_inode_str(statinfo.st_ino),
             })
                 
-            #if not stat.S_ISREG(statinfo.st_mode):
-                #continue
-
             file_info_list.append(file_info)
 
             if args.verbose and (i % 1000 == 0):  # Track progress by viewing occasional output. 
@@ -172,12 +144,11 @@ def catalog_disk_usage(rootdir, outpath):
             if i%10000 == 0:  # Write to file in batches, trying to maximize efficiency.
                 if new_file == True:
                     initialize_csv(outpath, file_info_list)
+                    new_file = False
                 write_to_csv(outpath, file_info_list)
                 file_info_list = []
-                new_file = False
 
             i += 1
-            #size? link/dir/file?
 
     write_to_csv(outpath, file_info_list)
 
@@ -189,20 +160,9 @@ def catalog_disk_usage(rootdir, outpath):
 if __name__ == '__main__':
     rootdir = args.rootdir
     output_prefix = args.outpath
-    #outpath = sys.argv[2]
-    #rootdir = '/cga/fh/pcawg_pipeline'
-    #outpath = '/xchip/cga_home/gsaksena/prj/2014/disk_clearing_2014-11-23/cga_fh_pcawg_pipeline_2015-02-20.txt'
-    #rootdir = '/cgaext/tcga'
-    #outpath = '/xchip/cga_home/gsaksena/prj/2014/disk_clearing_2014-11-23/cgaext_tcga_2015-04-20.txt'
-    #rootdir = '/cga/fh'
-    #outpath = '/xchip/cga_home/gsaksena/prj/2014/disk_clearing_2014-11-23/cga_fh_2015-03-30.txt'
-
-    #rootdir='/opt2'
-    #outpath = '/opt2/usage.txt'
     
     rootdir_cleaned = rootdir.replace('/','_')
     rootdir_cleaned = rootdir_cleaned[1:]
-#    outpath = '/xchip/cga_home/gsaksena/prj/2014/disk_clearing_2014-11-23/' + rootdir_cleaned + '_' + cga_util.get_timestamp() + '.txt'
     outpath = output_prefix + rootdir_cleaned + '_' + cga_util.get_timestamp() + '.txt'
     
     catalog_disk_usage(rootdir, outpath)
