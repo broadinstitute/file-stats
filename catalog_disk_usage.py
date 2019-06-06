@@ -29,6 +29,9 @@ Pete's additional To Do:
 - Create output path if does not exist.
 '''
 
+# TESTED USING PYTHON 3.7.3 (from Dotkit .anaconda3-5.3.1
+# N.B. - Dict in Python 3.6+ is ordered by default. 
+
 import os
 import sys
 import csv
