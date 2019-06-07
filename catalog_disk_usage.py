@@ -26,11 +26,12 @@ Changes:
 - Report whether a symlink.
 - Make designating the root directory a required option.
 - Make designating the output directory a required option.
------------
-Pete's additional To Do:
-- Test output of QUOTE_MINIMAL change, especially looking at output of inode field. 
 - Make inode output the int quoted with single quotes.
 - Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
+-----------
+Pete's additional To Do:
+- Create output path if it does not exist.
+- Create functions to validate the input file paths. 
 - Make this file runnable as a command.
 - Set a default output path, perhaps to current working directory, or else make output path a required option.
 - Try creating the designated output path if it is designated and does not exist.
@@ -54,15 +55,24 @@ import cga_util  # Be sure to put cga_util in a findable location.
 
 
 ####################################################################
+# Global variables
+####################################################################
+
+debug = False
+verbose = False
+
+####################################################################
 # Accept the start directory and the directory for the output file
 ####################################################################
 
-parser = argparse.ArgumentParser(description='Catalog metadata of files within a given directory')
-parser.add_argument('-r', '--rootdir', required=True, help='Top directory to begin from')
-parser.add_argument('-o', '--outpath', required=True, help='Directory in which to put the catalog file.')
-parser.add_argument('-v', '--verbose', help='Report status', action="store_true")  # Verbose mode on if designated, off if absent. 
-parser.add_argument('-d', '--debug', help='Debug mode', action="store_true")  # Debug mode on if designated, off if absent. 
-args=parser.parse_args()
+def parse_args():
+    parser = argparse.ArgumentParser(description='Catalog metadata of files within a given directory')
+    parser.add_argument('-r', '--rootdir', required=True, help='Top directory to begin from')
+    parser.add_argument('-o', '--outpath', required=True, help='Directory in which to put the catalog file.')
+    parser.add_argument('-v', '--verbose', help='Report status', action="store_true")  # Verbose mode on if designated, off if absent. 
+    parser.add_argument('-d', '--debug', help='Debug mode', action="store_true")  # Debug mode on if designated, off if absent. 
+    args=parser.parse_args()
+    return args
 
 ####################################################################
 # Utility functions
@@ -117,7 +127,7 @@ def catalog_disk_usage(rootdir, outpath):
 
     for (basedir, dirs, fns) in os.walk(rootdir):
 
-        if args.debug:
+        if debug:
             if i>1000:  # Stop short because we're just debugging.
                 break  #break
 
@@ -148,7 +158,7 @@ def catalog_disk_usage(rootdir, outpath):
                 
             file_info_list.append(file_info)
 
-            if args.verbose and (i % 1000 == 0):  # Track progress by viewing occasional output. 
+            if verbose and (i % 1000 == 0):  # Track progress by viewing occasional output. 
                 print(i)
 
             if i%10000 == 0:  # Write to file in batches, trying to maximize efficiency.
@@ -166,15 +176,30 @@ def catalog_disk_usage(rootdir, outpath):
 ####################################################################
 # Main
 ####################################################################
+def main():
+    if sys.version_info[0] < 3:
+        raise Exception("Must be using Python 3")
 
-if __name__ == '__main__':
+    args = parse_args()
+    
+    global debug
+    debug = args.debug
+    global verbose
+    verbose = args.verbose
+
     rootdir = args.rootdir
     output_prefix = args.outpath
     
+# Quick and dirty file paths fix.
+    rootdir += '/'
+    output_prefix += '/'
+
     rootdir_cleaned = rootdir.replace('/','_')
     rootdir_cleaned = rootdir_cleaned[1:]
     outpath = output_prefix + rootdir_cleaned + '_' + cga_util.get_timestamp() + '.txt'
     
     catalog_disk_usage(rootdir, outpath)
- 
+
+if __name__ == '__main__':
+    main() 
 
