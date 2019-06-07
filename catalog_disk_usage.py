@@ -24,9 +24,19 @@ Changes:
 - Improve performance by stat'ing each file once rather than twice.
 - Report whether group readable and whether world readable.
 - Report whether a symlink.
+- Make designating the root directory a required option.
+- Make designating the output directory a required option.
 -----------
 Pete's additional To Do:
-- Create output path if does not exist.
+- Test output of QUOTE_MINIMAL change, especially looking at output of inode field. 
+- Make inode output the int quoted with single quotes.
+- Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
+- Make this file runnable as a command.
+- Set a default output path, perhaps to current working directory, or else make output path a required option.
+- Try creating the designated output path if it is designated and does not exist.
+- Consider adding a log file option.
+- If log file option exists, add error writing to there for failure of (try lstat).
+    - What is good practice --  Designating a log file path writes errors to a log at that path, otherwise they silently fail?
 '''
 
 # TESTED USING PYTHON 3.7.3 (from Dotkit .anaconda3-5.3.1
@@ -48,8 +58,8 @@ import cga_util  # Be sure to put cga_util in a findable location.
 ####################################################################
 
 parser = argparse.ArgumentParser(description='Catalog metadata of files within a given directory')
-parser.add_argument('-r', '--rootdir', help='Top directory to begin from')
-parser.add_argument('-o', '--outpath', help='Directory in which to put the catalog file.')
+parser.add_argument('-r', '--rootdir', required=True, help='Top directory to begin from')
+parser.add_argument('-o', '--outpath', required=True, help='Directory in which to put the catalog file.')
 parser.add_argument('-v', '--verbose', help='Report status', action="store_true")  # Verbose mode on if designated, off if absent. 
 parser.add_argument('-d', '--debug', help='Debug mode', action="store_true")  # Debug mode on if designated, off if absent. 
 args=parser.parse_args()
@@ -61,13 +71,13 @@ args=parser.parse_args()
 def initialize_csv(outpath, info_list):
     with open(outpath,'w', newline='') as csvfile:  # Per recommendation https://docs.python.org/3/library/csv.html
         fieldnames = info_list[0].keys()
-        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_MINIMAL)
+        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_NONE)
         outdict.writeheader()
 
 def write_to_csv(outpath, info_list):
     with open(outpath,'a', newline='') as csvfile:  # Per recommendation https://docs.python.org/3/library/csv.html
         fieldnames = info_list[0].keys()
-        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_MINIMAL,escapechar='\\')
+        outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_NONE,quotechar="'",escapechar='\\')
         outdict.writerows(info_list)
 
 def get_login_name(id):
