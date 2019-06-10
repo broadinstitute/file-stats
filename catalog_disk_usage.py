@@ -30,8 +30,10 @@ Changes:
 - Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
 -----------
 Pete's additional To Do:
+- Also replace tabs in filenames
 - Create output path if it does not exist.
 - Create functions to validate the input file paths. 
+- For all code that modifies input values or values read from system, insert into new var name, do not change original.
 - Make this file runnable as a command.
 - Set a default output path, perhaps to current working directory, or else make output path a required option.
 - Try creating the designated output path if it is designated and does not exist.
@@ -90,6 +92,11 @@ def write_to_csv(outpath, info_list):
         outdict = csv.DictWriter(csvfile,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames,quoting=csv.QUOTE_NONE,quotechar="'",escapechar='\\')
         outdict.writerows(info_list)
 
+def fix_filepath(filepath):
+    fixed_filepath = filepath.replace('\n',r'\n')  # Add more fixes, perhaps from ejon and Sam Novod experiences.
+    fixed_filepath = fixed_filepath.replace('\t',r'\t')
+    return fixed_filepath
+
 def get_login_name(id):
     try:
         uid_struct = pwd.getpwuid(id)
@@ -143,7 +150,7 @@ def catalog_disk_usage(rootdir, outpath):
                 continue
             
             file_info = collections.OrderedDict({  # Py 3.6 dicts are ordered, but do this to ensure order in any py version.
-                "filepath": filepath.replace('\n',r'\n'),  # Add more fixes, perhaps from ejon and Sam Novod experiences.
+                "filepath": fix_filepath(filepath),
                 "size": str(statinfo.st_size),
                 "last_access": cga_util.get_timestamp(statinfo.st_atime),
                 "last_modified": cga_util.get_timestamp(statinfo.st_mtime),
