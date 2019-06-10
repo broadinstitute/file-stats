@@ -5,7 +5,6 @@ import csv
 from collections import Counter
 import sys
 import re
-sys.path.append("/xchip/cga_home/gsaksena/svn/CancerGenomeAnalysis/trunk/Python/util/")
 import cga_util
 #
 # program to take as input a set of file data produced by a file system scanner and produce a report containing
@@ -22,8 +21,8 @@ def summarize_disk_usage(infile,outfile):
     extList = [".csv",".bam","gz","tar"]
     nBins = len(binList)
     with open(infile, 'rU') as csvfile:
-        reader = csv.DictReader(f=csvfile,dialect='excel-tab',lineterminator= '\n',quoting=csv.QUOTE_MINIMAL)
         info_by_user = dict()
+        reader = csv.DictReader(f=csvfile,dialect='excel-tab',lineterminator= '\n',quoting=csv.QUOTE_MINIMAL)
         try:
 	  for row in reader:
             user = row['username']
@@ -33,6 +32,10 @@ def summarize_disk_usage(infile,outfile):
 		info_by_user[user]["user"] = user
 	    info_by_user[user]["fileCnt"] += 1
 	    info_by_user[user]["fileSize"] += size
+	    if info_by_user[user]["Last access"] < row["last_access"]:
+	        info_by_user[user]["Last access"] = row["last_access"]
+	    if info_by_user[user]["Last modified"] < row["last_modified"]:
+	        info_by_user[user]["Last modified"] = row["last_modified"]
 	    binNo=1
 	    for binTop in binList:
 	        if size <= binTop:
@@ -54,7 +57,7 @@ def summarize_disk_usage(infile,outfile):
 
     #print(info_by_user)
     
-    fieldnames = ('user','fileCnt',"fileSize","fileCntBin1","fileCntBin2","fileCntBin3","fileCntBin4","fileSizeBin1","fileSizeBin2","fileSizeBin3","fileSizeBin4","fileType.csv","fileType.bam","fileTypegz","fileTypetar","fileTypeSize.csv","fileTypeSize.bam","fileTypeSizegz","fileTypeSizetar")
+    fieldnames = ("user","fileCnt","fileSize","Last access","Last modified","fileCntBin1","fileCntBin2","fileCntBin3","fileCntBin4","fileSizeBin1","fileSizeBin2","fileSizeBin3","fileSizeBin4","fileType.csv","fileType.bam","fileTypegz","fileTypetar","fileTypeSize.csv","fileTypeSize.bam","fileTypeSizegz","fileTypeSizetar")
     cga_util.dump_dict_table(outfile,info_by_user,fields=fieldnames,ragged_ok = True)
     
 
