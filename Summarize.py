@@ -17,14 +17,20 @@ import cga_util
 #  6. count of files not readable by "others" or group
 
 def summarize_disk_usage(infile,outfile):
-    binList = [1000000,1000000000,10000000000]
-    extList = [".csv",".bam","gz","tar"]
+    binList = [1e6,1e9,1e10,1e11,1e12,1e21]
+    binNameList = ["<1 MB","<1 GB","< 10GB","< 100GB","< 1TB","> 1TB"]
+    cntBinNameList = ["Cnt " + s for s in binNameList]
+    sizeBinNameList = ["Size " + s for s in binNameList]
+    extList = ["csv","bam","gz","tar"]
+    cntExtList = ["Cnt " + s for s in extList]
+    sizeExtList = ["Size " + s for s in extList]
     nBins = len(binList)
+    nExts = len(extList)
     with open(infile, 'rU') as csvfile:
         info_by_user = dict()
         reader = csv.DictReader(f=csvfile,dialect='excel-tab',lineterminator= '\n',quoting=csv.QUOTE_MINIMAL)
-        try:
-	  for row in reader:
+#        try:
+        for row in reader:
             user = row['username']
 	    size = int(row['size'])
 	    if user not in info_by_user:
@@ -36,29 +42,27 @@ def summarize_disk_usage(infile,outfile):
 	        info_by_user[user]["Last access"] = row["last_access"]
 	    if info_by_user[user]["Last modified"] < row["last_modified"]:
 	        info_by_user[user]["Last modified"] = row["last_modified"]
-	    binNo=1
-	    for binTop in binList:
+	    for index, binTop in enumerate(binList,start=0):
 	        if size <= binTop:
-	            info_by_user[user]["fileCntBin"+str(binNo)] += 1
-	            info_by_user[user]["fileSizeBin"+str(binNo)] += size
-	            break
-	        else:
-		    binNo += 1
-            if binNo == nBins:
-	        info_by_user[user]["fileCntBin"+str(binNo)] += 1
-		info_by_user[user]["fileSizeBin"+str(binNo)] += size
-	    for ext in extList:
-	        regEx = ext + "$"
-		if re.search(regEx,row['filepath'],flags=re.IGNORECASE):
-		  info_by_user[user]["fileType"+ext] += 1
-		  info_by_user[user]["fileTypeSize"+ext] += size
-        except:
-	  print(row['filepath'])
+	            info_by_user[user][cntBinNameList[index]] += 1
+	            info_by_user[user][sizeBinNameList[index]] += size
+		    break
+	    for idx, ext in enumerate(extList,start=0):
+		if row['filepath'].lower().endswith(ext):
+		  info_by_user[user][cntExtList[idx]] += 1
+		  info_by_user[user][sizeExtList[idx]] += size
+       # except:
+#	  print(row['filepath'])
 
     #print(info_by_user)
     
-    fieldnames = ("user","fileCnt","fileSize","Last access","Last modified","fileCntBin1","fileCntBin2","fileCntBin3","fileCntBin4","fileSizeBin1","fileSizeBin2","fileSizeBin3","fileSizeBin4","fileType.csv","fileType.bam","fileTypegz","fileTypetar","fileTypeSize.csv","fileTypeSize.bam","fileTypeSizegz","fileTypeSizetar")
+    fieldnames = ["user","fileCnt","fileSize","Last access","Last modified"]
+    fieldnames.extend(cntBinNameList)
+    fieldnames.extend(sizeBinNameList)
+    fieldnames.extend(cntExtList)
+    fieldnames.extend(sizeExtList)
     cga_util.dump_dict_table(outfile,info_by_user,fields=fieldnames,ragged_ok = True)
+    #cga_util.dump_dict_table(outfile,info_by_user)
     
 
 if __name__ == '__main__':
