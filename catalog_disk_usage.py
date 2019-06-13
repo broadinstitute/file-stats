@@ -28,15 +28,16 @@ Changes:
 - Make designating the output directory a required option.
 - Make inode output the int quoted with single quotes.
 - Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
+- Also replace tabs in filenames
 -----------
 Pete's additional To Do:
-- Also replace tabs in filenames
-- Create output path if it does not exist.
-- Create functions to validate the input file paths. 
+- Mitigate bad characters such as !"#$%&'()*/:;<=>?@[]\^`{|}~ by using whitelist. 
+- Remove any meta character. Ejon saw a ^M in some files. 
+- Create functions to validate the input file paths. Also add a trailing slash only if missing.
 - For all code that modifies input values or values read from system, insert into new var name, do not change original.
-- Make this file runnable as a command.
 - Set a default output path, perhaps to current working directory, or else make output path a required option.
 - Try creating the designated output path if it is designated and does not exist.
+- Make this file runnable as a command.
 - Consider adding a log file option.
 - If log file option exists, add error writing to there for failure of (try lstat).
     - What is good practice --  Designating a log file path writes errors to a log at that path, otherwise they silently fail?
@@ -62,6 +63,8 @@ import cga_util  # Be sure to put cga_util in a findable location.
 
 debug = False
 verbose = False
+inodeset = []  # For tracking hard linked files. 
+
 
 ####################################################################
 # Accept the start directory and the directory for the output file
@@ -95,6 +98,8 @@ def write_to_csv(outpath, info_list):
 def fix_filepath(filepath):
     fixed_filepath = filepath.replace('\n',r'\n')  # Add more fixes, perhaps from ejon and Sam Novod experiences.
     fixed_filepath = fixed_filepath.replace('\t',r'\t')
+    fixed_filepath = fixed_filepath.replace('"',r'\"')
+# Now remove all characters not in a whitelist. 
     return fixed_filepath
 
 def get_login_name(id):
@@ -122,6 +127,15 @@ def get_all_readable(mode):
 def get_inode_str(inode):
     return '"%d"'%inode
 
+def get_dupe_boolean(numlinks,inodenum):
+    dupe = False
+    if numlinks > 1:
+        if inodenum in inodeset:
+            dupe = True
+        else:
+            inodeset.append(inodenum)
+    return dupe
+
 
 ####################################################################
 # Walk the directories and build the file information.
@@ -148,7 +162,7 @@ def catalog_disk_usage(rootdir, outpath):
 
             if not stat.S_ISREG(statinfo.st_mode):  # Only report for regular files.
                 continue
-            
+
             file_info = collections.OrderedDict({  # Py 3.6 dicts are ordered, but do this to ensure order in any py version.
                 "filepath": fix_filepath(filepath),
                 "size": str(statinfo.st_size),
@@ -161,6 +175,7 @@ def catalog_disk_usage(rootdir, outpath):
                 "symlink": stat.S_ISLNK(statinfo.st_mode),
                 "nlink": statinfo.st_nlink,
                 "inode": get_inode_str(statinfo.st_ino),
+                "dupe": get_dupe_boolean(statinfo.st_nlink,get_inode_str(statinfo.st_ino))
             })
                 
             file_info_list.append(file_info)
