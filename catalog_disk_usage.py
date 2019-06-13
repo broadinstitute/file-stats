@@ -3,34 +3,7 @@ Given a directory to begin from, and a directory to write an output file into, g
 Walks all subdirectories.
 
 To Do:
-- DONE - Additional data to collect: permissions (group name, group readable? others readable?), soft links.
 
-- Mitigate bad characters in the filenames, eg newline, tab, doublequote, others that are not allowed as bucket object names.
-
-- Tag second and following hard links to the same inode. (desirable but might be memory intensive)
-
-- Fix bug that caused scan to miss 5% of the files on cga_home, compared to IBM Spectrum. (https://docs.google.com/spreadsheets/d/1OQIcKYJfL8oO2wTtVP9TrfyWPA55Iurf1Bv6vXiWS9E/edit#gid=0)
-
-- Fix memory leak that causes RAM consumption to hit 30GB (maybe just by moving to 3.x)
-
------------
-Changes:
-- Removed one of the stat calls because its output wasn't used.
-- Added group name in report.
-- Reports group name, if available, or just as id (via try/catch same as for uid). 
-- Changed stat to lstat, so symlinks are not followed.
-- Refactor, coupling the fieldnames with value retrievals, to prevent sync problem as this code is modified. (Build as Dict)
-- Parameterize the paths, maybe putting them at the top of this file. 
-- Improve performance by stat'ing each file once rather than twice.
-- Report whether group readable and whether world readable.
-- Report whether a symlink.
-- Make designating the root directory a required option.
-- Make designating the output directory a required option.
-- Make inode output the int quoted with single quotes.
-- Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
-- Also replace tabs in filenames
------------
-Pete's additional To Do:
 - Mitigate bad characters such as !"#$%&'()*/:;<=>?@[]\^`{|}~ by using whitelist. 
 - Remove any meta character. Ejon saw a ^M in some files. 
 - Create functions to validate the input file paths. Also add a trailing slash only if missing.
@@ -41,6 +14,26 @@ Pete's additional To Do:
 - Consider adding a log file option.
 - If log file option exists, add error writing to there for failure of (try lstat).
     - What is good practice --  Designating a log file path writes errors to a log at that path, otherwise they silently fail?
+
+-----------
+Changes:
+- Removed one of the stat calls because its output wasn't used.
+- Added group name in report.
+- Reports group name, if available, or just as id (via try/catch same as for uid). 
+- Changed stat to lstat, so symlinks are not followed.
+- Refactor, coupling the fieldnames with value retrievals, to prevent sync problem as this code is modified. (Build as Dict)
+- Parameterize the paths, maybe putting them at the top of this file. 
+- Improve performance by stat'ing each file once rather than twice.
+- Report whether group readable, whether world readable, whether a symlink.
+- Report whether a symlink.
+- Make designating the root directory a required option.
+- Make designating the output directory a required option.
+- Make inode output the int quoted with single quotes.
+- Fix the file path arguments so they accommodate a trailing slash and an absent trailing slash. 
+- Also replace tabs in filenames
+- Tag second and following hard links to the same inode. (desirable but might be memory intensive)
+- SEEMS FIXED - Fix bug that caused scan to miss 5% of the files on cga_home, compared to IBM Spectrum. (https://docs.google.com/spreadsheets/d/1OQIcKYJfL8oO2wTtVP9TrfyWPA55Iurf1Bv6vXiWS9E/edit#gid=0)
+- SEEMS FIXED - Fix memory leak that causes RAM consumption to hit 30GB (maybe just by moving to 3.x)
 '''
 
 # TESTED USING PYTHON 3.7.3 (from Dotkit .anaconda3-5.3.1
