@@ -57,7 +57,7 @@ import re
 
 debug = False
 verbose = False
-inodeset = []  # For tracking hard linked files. 
+inodeset = set()  # For tracking hard linked files. 
 
 
 ####################################################################
@@ -128,7 +128,7 @@ def get_dupe_boolean(numlinks,inodenum):
         if inodenum in inodeset:
             dupe = True
         else:
-            inodeset.append(inodenum)
+            inodeset.add(inodenum)
     return dupe
 
 
