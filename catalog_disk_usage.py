@@ -4,8 +4,6 @@ Walks all subdirectories.
 
 To Do:
 
-- Mitigate bad characters such as !"#$%&'()*/:;<=>?@[]\^`{|}~ by using whitelist. 
-- Remove any meta character. Ejon saw a ^M in some files. 
 - Create functions to validate the input file paths. Also add a trailing slash only if missing.
 - For all code that modifies input values or values read from system, insert into new var name, do not change original.
 - Set a default output path, perhaps to current working directory, or else make output path a required option.
@@ -17,6 +15,8 @@ To Do:
 
 -----------
 Changes:
+- Mitigate bad characters such as !"#$%&'()*/:;<=>?@[]\^`{|}~ by using whitelist. 
+- Remove any meta character. Ejon saw a ^M in some files. 
 - Removed one of the stat calls because its output wasn't used.
 - Added group name in report.
 - Reports group name, if available, or just as id (via try/catch same as for uid). 
@@ -48,6 +48,7 @@ import grp  # To retrieve group name using gid.
 import collections
 import argparse
 import cga_util  # Be sure to put cga_util in a findable location.
+import re
 
 
 ####################################################################
@@ -93,6 +94,7 @@ def fix_filepath(filepath):
     fixed_filepath = fixed_filepath.replace('\t',r'\t')
     fixed_filepath = fixed_filepath.replace('"',r'\"')
 # Now remove all characters not in a whitelist. 
+    fixed_filepath = re.sub('[^a-zA-Z0-9_\. \/\\\-]','', fixed_filepath )
     return fixed_filepath
 
 def get_login_name(id):
