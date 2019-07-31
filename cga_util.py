@@ -20,7 +20,7 @@ def get_timestamp(ts = None):
     timestamp = '%d_%02d_%02d__%02d_%02d_%02d'%(t.year,t.month,t.day,t.hour,t.minute,t.second)
     return timestamp
 
-def get_timestamp_delta(ts_begin,ts_end):        
+def get_timestamp_delta(ts_begin,ts_end):
     begin_secs = timestamp_to_seconds(ts_begin)
     end_secs = timestamp_to_seconds(ts_end)
     duration = end_secs - begin_secs
@@ -33,7 +33,8 @@ def timestamp_to_seconds(timestamp):
     
     dt = datetime.datetime(year,month,day,hour,minute,second)
     days = dt.toordinal()
-    days = days - 733000 # keep the seconds to a managable size...
+    #days = days - 733000 # keep the seconds to a managable size...
+    days = days - 1995*365
     secs = days*24*60*60 + hour*60*60 + minute*60 + second
     return secs
 

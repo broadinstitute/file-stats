@@ -1,3 +1,5 @@
+#!/bin/env python
+
 '''
 Given a directory to begin from, and a directory to write an output file into, gather metadata about all files within that directory. 
 Walks all subdirectories.
@@ -15,7 +17,7 @@ To Do:
 
 -----------
 Changes:
-- Mitigate bad characters such as !"#$%&'()*/:;<=>?@[]\^`{|}~ by using whitelist. 
+- Mitigate bad characters such as *!"#$%&'()/:;<=>?@[]\^`{|}~ by using whitelist.
 - Remove any meta character. Ejon saw a ^M in some files. 
 - Removed one of the stat calls because its output wasn't used.
 - Added group name in report.
@@ -91,6 +93,7 @@ def write_to_csv(outpath, info_list):
 
 def fix_filepath(filepath):
     fixed_filepath = filepath.replace('\n',r'\n')  # Add more fixes, perhaps from ejon and Sam Novod experiences.
+    fixed_filepath = fixed_filepath.replace('\r',r'\r')
     fixed_filepath = fixed_filepath.replace('\t',r'\t')
     fixed_filepath = fixed_filepath.replace('"',r'\"')
 # Now remove all characters not in a whitelist. 
