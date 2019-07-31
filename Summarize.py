@@ -65,10 +65,20 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
                 user = login_by_userid[user]
             filepath = row['filepath']
             (root,extension) = os.path.splitext(filepath)
+            (root_2,extension_2) = os.path.splitext(root)
+            (root_3,extension_3) = os.path.splitext(root_2)
             if extension:
                 extension_key = 'zz' + extension.lower()
             else:
                 extension_key = None
+            if extension_2:
+                extension_2_key = extension_key + extension_2.lower()
+            else:
+                extension_2_key = None
+            if extension_3:
+                extension_3_key = extension_2_key + extension_3.lower() 
+            else:
+                extension_3_key = None
 
             # dot_position = filepath.rfind('.')
             # if dot_position != -1:
@@ -86,6 +96,14 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
                      sizeAgeNameList)
             if extension_key is not None:
                 log_file(extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                         sizeAgeNameList)
+            if extension_2_key is not None:
+                log_file(extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                         sizeAgeNameList)
+            if extension_3_key is not None:
+                log_file(extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                          cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                          sizeAgeNameList)
 
