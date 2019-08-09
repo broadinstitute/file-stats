@@ -27,6 +27,8 @@ def convert_date(date_in):
     #out 2019_05_23__18_14_50
     d=date_in
     date_out = '%s_%s_%s__%s_%s_%s'%(d[:4], d[5:7], d[8:10], d[11:13], d[14:16], d[17:19])
+    if date_out[0] != '2':
+        raise Exception('Invalid date: %s'%date_in)
     return date_out
 
 def get_read_permission(permission_string, permission_type):
@@ -67,4 +69,5 @@ with open(infile, 'r', encoding='ascii', errors='backslashreplace') as csvfile:
                 }
                 writer.writerow(oline)
             except:
+                # exceptions on /xchip/cga caused by comma  in filename
                 print(line)

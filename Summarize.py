@@ -25,20 +25,20 @@ def TB_from_bytes(bytes):
 
 def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
     binList = [1e6,1e9,1e10,1e11,1e12,1e21]
-    binNameList = ["<1 MB","<1 GB","< 10GB","< 100GB","< 1TB","> 1TB"]
-    cntBinNameList = ["Cnt " + s for s in binNameList]
-    sizeBinNameList = ["Size " + s for s in binNameList]
-    TBsizeBinNameList = ["Size " + s + " (TB)" for s in binNameList]
+    binNameList = ["<1M","<1G","<10G","<100G","<1T",">1T"]
+    cntBinNameList = ["Cnt" + s for s in binNameList]
+    sizeBinNameList = ["Size" + s for s in binNameList]
+    TBsizeBinNameList = ["TB" + s for s in binNameList]
     extList = ["csv","bam","gz","tar"]
-    cntExtList = ["Cnt " + s for s in extList]
-    sizeExtList = ["Size " + s for s in extList]
-    TBsizeExtList = ["Size " + s + " (TB)" for s in extList]
+    cntExtList = ["Cnt" + s for s in extList]
+    sizeExtList = ["Size" + s for s in extList]
+    TBsizeExtList = ["TB" + s for s in extList]
     day = 60*60*24
     ageBinList = [7*day, 30*day, 90*day, 365*day, 2*365*day,100*365*day]
-    ageNameList = ['access<week','access<month','access<quarter','access<year','access<2years','access>2years']
-    cntAgeNameList = ["Cnt " + s for s in ageNameList]
-    sizeAgeNameList = ["Size " + s for s in ageNameList]
-    TBsizeAgeNameList = ["Size " + s + " (TB)" for s in ageNameList]
+    ageNameList = ['a<1w','a<1m','a<1q','a<1y','a<2y','a>2y']
+    cntAgeNameList = ["Cnt" + s for s in ageNameList]
+    sizeAgeNameList = ["Size" + s for s in ageNameList]
+    TBsizeAgeNameList = ["TB" + s for s in ageNameList]
 
     nBins = len(binList)
     nExts = len(extList)
@@ -49,7 +49,8 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
     # assumes tabs and newlines have already been dropped from filenames, though those should trigger an exception later.
     # newline='\n' in the open now causes an exception in DictReader if \r is found in a filename
     # encoding=ascii, errors=backslashreplace filters out other weird characters
-    with open(infile, 'r', newline='\n', encoding='ascii', errors='backslashreplace') as csvfile:
+    #with open(infile, 'r', newline='\n', encoding='ascii', errors='backslashreplace') as csvfile:
+    with open(infile) as csvfile:
         info_by_user = dict()
         reader = csv.DictReader(f=csvfile,dialect='excel-tab')
         for i,row in enumerate(reader):
@@ -58,17 +59,27 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
                 #print(row['filepath'])
 
             dupe = row.get('dupe','NA')
-            if dupe not in ('False','NA') : #tolerate missing dupe field
+            if dupe not in ('0','False','NA') : #tolerate missing dupe field
                 continue
             user = row['username']
             if user in login_by_userid:
                 user = login_by_userid[user]
             filepath = row['filepath']
             (root,extension) = os.path.splitext(filepath)
+            (root_2,extension_2) = os.path.splitext(root)
+            (root_3,extension_3) = os.path.splitext(root_2)
             if extension:
                 extension_key = 'zz' + extension.lower()
             else:
                 extension_key = None
+            if extension_2:
+                extension_2_key = extension_key + extension_2.lower()
+            else:
+                extension_2_key = None
+            if extension_3:
+                extension_3_key = extension_2_key + extension_3.lower()
+            else:
+                extension_3_key = None
 
             # dot_position = filepath.rfind('.')
             # if dot_position != -1:
@@ -80,14 +91,22 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
 
             log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                      cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                     sizeAgeNameList)
+                     sizeAgeNameList,i)
             log_file("_ALL_", row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                      cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                     sizeAgeNameList)
+                     sizeAgeNameList,i)
             if extension_key is not None:
                 log_file(extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                          cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                         sizeAgeNameList)
+                         sizeAgeNameList,i)
+            if extension_2_key is not None:
+                log_file(extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                         sizeAgeNameList,i)
+            if extension_3_key is not None:
+                log_file(extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                         sizeAgeNameList,i)
 
 
 
@@ -135,14 +154,16 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
 
 
 def log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList, cntBinNameList,
-             sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList, sizeAgeNameList):
+             sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList, sizeAgeNameList, i):
 
     try:
         size = int(row['size'])
     except:
         # Size ought to be kept in the second column, following filepath, to make this check work well.
-        raise("Size column must be numeric.  Possible newline or tab in filename: %s"%repr(row['filepath']))
-
+        msg = "Size column must be numeric.  Possible newline or tab in filename: %s"%repr(row['filepath'])
+        print('row %d: %s'%(i,msg))
+        print(row)
+        return
 
     if user not in info_by_user:
         info_by_user[user] = Counter()
@@ -180,7 +201,6 @@ def log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_
 
 if __name__ == '__main__':
     infile = sys.argv[1]
-    outfile = sys.argv[2]
 
     login_by_userid = {}
     username_by_login = {}
@@ -189,6 +209,12 @@ if __name__ == '__main__':
         for line in reader:
             login_by_userid[line[0]] = line[1]
             username_by_login[line[1]] = line[2]
-           
+
+    ext = '.files.txt'
+    if not infile.endswith(ext):
+        raise Exception('unexpected file extension: %s'%infile)
+    outfile = infile[:-len(ext)] + '.summ.txt'
+
+
     summarize_disk_usage(infile,outfile,login_by_userid,username_by_login)
     #cProfile.run('summarize_disk_usage(infile,outfile,login_by_userid,username_by_login)')
