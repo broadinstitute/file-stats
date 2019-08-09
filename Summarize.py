@@ -204,7 +204,8 @@ if __name__ == '__main__':
 
     login_by_userid = {}
     username_by_login = {}
-    with open('../users.csv') as fid:
+    userdb_path = '/sysman/scratch/apsg/alosada/gsaksena/dev/users.csv' #'../users.csv'
+    with open(userdb_path) as fid:
         reader = csv.reader(fid,dialect='excel')
         for line in reader:
             login_by_userid[line[0]] = line[1]
