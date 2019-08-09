@@ -45,6 +45,7 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
     #now = cga_util.get_datestamp()
     # 6__2019_06_11__02_56_13.txt
     file_datestamp = infile[-24:-4]
+    file_datestamp = infile[-41:-21]
     #print(file_datestamp)
     # assumes tabs and newlines have already been dropped from filenames, though those should trigger an exception later.
     # newline='\n' in the open now causes an exception in DictReader if \r is found in a filename
