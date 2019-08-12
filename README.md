@@ -31,3 +31,18 @@ annot.files.txt files:
 * cumfract      --cumulative fraction of disk consumed by this file and all the ones bigger than it. 
 * cumfractcat    -- cumulative fraction category, = cumfract rounded up to the next highest discrete level is 80, 90, 95, 99, 99.9, 100.  eg if you discard all files labeled 80, you will clear at least 80% of your space.  You will want to focus on the few labeled 80 or 90 and ignore the many labeled 99.9  or 100.
 * ext     ext2    ext3 -- file extensions, double extensions, etc. foo.tar.gz will have: ext=.gz ext2=.gz.tar ext3=NA
+
+
+To generate these...
+catalog_disk_usage.py -o outdir -r root_dir_to_scan [-v]
+* intended to be run as root
+* generates <scanpath>_<scandate>.files.txt and <scanpath>_<scandate>.dirs.txt
+  
+ annotate_scan_files.py <scanfile>
+ * can run on either .dirs.txt or .files.txt, creates .annot.dirs.txt or .annot.files.txt in the same location
+  
+ Summarize.py <scanfile>
+  * can run on .files.txt (or .annot.files.txt)
+  * creates .summ.txt in the same location
+  
+  
