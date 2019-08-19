@@ -110,6 +110,7 @@ def fix_filepath(filepath):
     fixed_filepath = fixed_filepath.replace(r"'",  r"\x27") # case used for sq if dq not in path
     fixed_filepath = fixed_filepath.replace(r'\"', r"\x22") # case should never be used
     fixed_filepath = fixed_filepath.replace(r'"',  r"\x22") # dq case
+    fixed_filepath = fixed_filepath.replace(r',',  r"\x2c") # comma - won't hurt us, but may mess up other downstream stuff
 
     if filepath != fixed_filepath:
         filepath_escaped = '1'

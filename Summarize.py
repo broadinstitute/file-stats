@@ -23,7 +23,7 @@ def TB_from_bytes(bytes):
 
 
 
-def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
+def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_extensions):
     binList = [1e6,1e9,1e10,1e11,1e12,1e21]
     binNameList = ["<1M","<1G","<10G","<100G","<1T",">1T"]
     cntBinNameList = ["Cnt" + s for s in binNameList]
@@ -43,9 +43,13 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
     nBins = len(binList)
     nExts = len(extList)
     #now = cga_util.get_datestamp()
-    # 6__2019_06_11__02_56_13.txt
-    file_datestamp = infile[-24:-4]
-    file_datestamp = infile[-41:-21]
+    # 6__2019_06_11__02_56_13.txt or 6__2019_06_11__02_56_13.files.txt etc
+    #file_datestamp = infile[-24:-4]
+    fn_base_base = os.path.basename(infile)
+    while '.' in fn_base_base:
+        (fn_base_base, ext) = os.path.splitext(fn_base_base)
+    file_datestamp = fn_base_base[-20:]
+
     #print(file_datestamp)
     # assumes tabs and newlines have already been dropped from filenames, though those should trigger an exception later.
     # newline='\n' in the open now causes an exception in DictReader if \r is found in a filename
@@ -96,18 +100,19 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login):
             log_file("_ALL_", row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                      cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                      sizeAgeNameList,i)
-            if extension_key is not None:
-                log_file(extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
-                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                         sizeAgeNameList,i)
-            if extension_2_key is not None:
-                log_file(extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
-                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                         sizeAgeNameList,i)
-            if extension_3_key is not None:
-                log_file(extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
-                         cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
-                         sizeAgeNameList,i)
+            if tally_extensions:
+                if extension_key is not None:
+                    log_file(extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                             cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                             sizeAgeNameList,i)
+                if extension_2_key is not None:
+                    log_file(extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                             cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                             sizeAgeNameList,i)
+                if extension_3_key is not None:
+                    log_file(extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                             cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
+                             sizeAgeNameList,i)
 
 
 
@@ -216,7 +221,12 @@ if __name__ == '__main__':
     if not infile.endswith(ext):
         raise Exception('unexpected file extension: %s'%infile)
     outfile = infile[:-len(ext)] + '.summ.txt'
+    outfile_part = outfile + '.part'
+
+    tally_extensions = True
 
 
-    summarize_disk_usage(infile,outfile,login_by_userid,username_by_login)
+    summarize_disk_usage(infile,outfile_part,login_by_userid,username_by_login, tally_extensions)
     #cProfile.run('summarize_disk_usage(infile,outfile,login_by_userid,username_by_login)')
+
+    os.rename(outfile_part, outfile)
