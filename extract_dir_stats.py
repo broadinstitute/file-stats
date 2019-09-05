@@ -7,6 +7,7 @@ import subprocess
 import cga_util
 import math
 import datetime
+import cProfile
 
 def annot_file_scan(infile, tmpdir):
     infile_ext = '.files.txt'
@@ -23,17 +24,18 @@ def annot_file_scan(infile, tmpdir):
     tmppath1 = os.path.join(tmpdir, infile_fn + '.sorted.files.txt')
     tmppath2 = os.path.join(tmpdir, infile_fn + '.unsorted.dirs.txt')
 
-    outpath = os.path.join(infile_dir, infile_fn + '.dirs.txt')
+    outpath = os.path.join(infile_dir, infile_fn + '.dirs2.txt')
     outpath_part = outpath + '.part.txt'
 
     # forward ascii sort based on 1st column, starting after header line
     # this puts tree in top-down order
     # cmdline sort tolerates huge files
+    print ('sorting files')
     sort_column = 1
     sort_tsv_file(infile, tmppath1, tmpdir, sort_column)
 
 
-
+    print('building/walking dir tree')
     dirinfo_by_dirlevel_by_dir = []
     total_size = 0
 
@@ -44,7 +46,12 @@ def annot_file_scan(infile, tmpdir):
             fieldnames_outfile = get_output_header()
             writer = csv.DictWriter(ofid,dialect='excel-tab',lineterminator='\n',fieldnames=fieldnames_outfile)
             writer.writeheader()
+            linenum = 0
             for fileinfo in reader:
+                if linenum%10000 == 0:
+                    print('%dk'%(linenum/1000))
+                linenum += 1
+
                 filepath = fileinfo['filepath']
                 filepath_list = filepath.split('/')
 
@@ -70,6 +77,7 @@ def annot_file_scan(infile, tmpdir):
             # flush remaining directories
             process_finished_dirs(writer, dirinfo_by_dirlevel_by_dir, 1)
     # tree was written in bottom-up order, resort to make it top-down again
+    print('sorting dirs')
     sort_tsv_file(tmppath2,outpath_part,tmpdir,sort_column)
     os.rename(outpath_part, outpath)
 
@@ -142,20 +150,28 @@ def get_age_old(this_time, ref_time):
     age_days_int = int(min(1, math.floor(age_secs_float / sec_per_day)))
     return age_days_int
 
+age_cache = {}
 def get_age(this_time, ref_time):
     # intentionally ignore time, to make files from the same day have an identical age
     # return as an integer number of days
-    (this_year, this_month, this_day, junk, this_hour, this_minute, this_second) = this_time.split('_')
-    (ref_year, ref_month, ref_day, junk, ref_hour, ref_minute, ref_second) = ref_time.split('_')
+    age_key = this_time + ref_time
+    # use cache - this code seems to be unexpectedly time consuming
+    age_days = age_cache.get(age_key)
+    if age_days is None:
 
-    # presume midnight
-    this_dt = datetime.datetime(int(this_year), int(this_month), int(this_day), 0, 0, 0)
-    # presume 11:59pm
-    ref_dt = datetime.datetime(int(ref_year), int(ref_month), int(ref_day), 0, 0, 0)
+        (this_year, this_month, this_day, junk, this_hour, this_minute, this_second) = this_time.split('_')
+        (ref_year, ref_month, ref_day, junk, ref_hour, ref_minute, ref_second) = ref_time.split('_')
 
-    this_days = this_dt.toordinal()
-    this_ref = ref_dt.toordinal()
-    age_days = this_ref - this_days
+        # presume midnight
+        this_dt = datetime.datetime(int(this_year), int(this_month), int(this_day), 0, 0, 0)
+        # presume 11:59pm
+        ref_dt = datetime.datetime(int(ref_year), int(ref_month), int(ref_day), 0, 0, 0)
+
+        this_days = this_dt.toordinal()
+        this_ref = ref_dt.toordinal()
+        age_days = this_ref - this_days
+
+        age_cache[age_key] = age_days
     return age_days
 
 
@@ -327,8 +343,20 @@ def process_finished_dir(dirinfo, child_dirinfos, parent_dirinfo, level):
 ####################
 ####################
 
+def main():
+    infile = sys.argv[1]
 
-#infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_cga_home_marniell__2019_08_07__11_21_14.files.txt'
-infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_pandora__2019_08_28__10_19_55.files.txt'
-tmpdir = '/broad/hptmp/gsaksena'
-annot_file_scan(infile, tmpdir)
+    username = os.getenv('USER')
+    tmpdir = '/broad/hptmp/' + username
+    os.makedirs(tmpdir,exist_ok = True)
+
+    #infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_cga_home_marniell__2019_08_07__11_21_14.files.txt'
+    # infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_pandora__2019_08_28__10_19_55.files.txt'
+    # infile = '/sysman/scratch/apsg/meyerson-stats/old/cga_meyerson__2019_08_20__13_48_36.files.txt'
+    # tmpdir = '/broad/hptmp/gsaksena'
+    annot_file_scan(infile, tmpdir)
+
+if __name__ == '__main__':
+    main()
+
+    #cProfile.run('main()')
