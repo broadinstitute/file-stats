@@ -18,7 +18,7 @@ import cga_util
 #  6. count of files not readable by "others" or group
 
 def TB_from_bytes(bytes):
-    TB = '{size:.2f}'.format(size=bytes/1.1e12)
+    TB = '{size:.3f}'.format(size=bytes/1.1e12)
     return TB
 
 
@@ -131,7 +131,7 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_
 
     pruned_users = []
     for user in info_by_user:
-        info_by_user[user]["TBfileSize"]='{size:.2f}'.format(size=info_by_user[user]["fileSize"]/1.1e12)
+        info_by_user[user]["TBfileSize"]=TB_from_bytes(info_by_user[user]["fileSize"])
         for idx, bin in enumerate(sizeBinNameList,start=0):
             #info_by_user[user][TBsizeBinNameList[idx]]='{size:.2f}'.format(size=info_by_user[user][sizeBinNameList[idx]]/1.1e12)
             info_by_user[user][TBsizeBinNameList[idx]]=TB_from_bytes(info_by_user[user][sizeBinNameList[idx]])
