@@ -24,7 +24,7 @@ def annot_file_scan(infile, tmpdir):
     tmppath1 = os.path.join(tmpdir, infile_fn + '.sorted.files.txt')
     tmppath2 = os.path.join(tmpdir, infile_fn + '.unsorted.dirs.txt')
 
-    outpath = os.path.join(infile_dir, infile_fn + '.dirs2.txt')
+    outpath = os.path.join(infile_dir, infile_fn + '.stats.dirs.txt')
     outpath_part = outpath + '.part.txt'
 
     # forward ascii sort based on 1st column, starting after header line
@@ -32,6 +32,7 @@ def annot_file_scan(infile, tmpdir):
     # cmdline sort tolerates huge files
     print ('sorting files')
     sort_column = 1
+    # TBD validate that input file has 'filepath' as its initial column
     sort_tsv_file(infile, tmppath1, tmpdir, sort_column)
 
 
@@ -101,17 +102,24 @@ def process_finished_dirs(writer, dirinfo_by_dirlevel_by_dir, prune_level):
             if dirinfo['done']:
                 continue
 
-            # get list of structs of its immediate child dirs
-            if len(dirinfo_by_dirlevel_by_dir) > level + 1:
-                potential_child_dirinfos = dirinfo_by_dirlevel_by_dir[level + 1]
-            else:
-                potential_child_dirinfos = []
+            #get list of structs of its immediate child dirs
+
+            # if len(dirinfo_by_dirlevel_by_dir) > level + 1:
+            #     potential_child_dirinfos = dirinfo_by_dirlevel_by_dir[level + 1]
+            # else:
+            #     potential_child_dirinfos = []
+            # child_dirinfos = []
+            # child_dirs = []
+            # for potential_child_dir in potential_child_dirinfos:
+            #     if potential_child_dirinfos[potential_child_dir]['parent_dir'] == dir:
+            #         child_dirs.append(potential_child_dir)
+            #         child_dirinfos.append(potential_child_dirinfos[potential_child_dir])
+
             child_dirinfos = []
-            child_dirs = []
-            for potential_child_dir in potential_child_dirinfos:
-                if potential_child_dirinfos[potential_child_dir]['parent_dir'] == dir:
-                    child_dirs.append(potential_child_dir)
-                    child_dirinfos.append(potential_child_dirinfos[potential_child_dir])
+            child_dirs = list(dirinfo['children'])
+            for child_dir in child_dirs:
+                child_dirinfos.append(dirinfo_by_dirlevel_by_dir[level + 1][child_dir])
+
 
             # get struct for parent of this dir
             parent_dir = dirinfo['parent_dir']
@@ -134,6 +142,8 @@ def process_new_file(filepath_list, dirlevel, fileinfo, dirinfo_by_dirlevel_by_d
         # first time encountering this directory, so need to create a new record for it.
         parent_dir = '/'.join(filepath_list[:dirlevel])
         dirinfo_by_dirlevel_by_dir[dirlevel][dir_path] = get_initial_dirinfo(dir_path, parent_dir)
+        parent_dirinfo = dirinfo_by_dirlevel_by_dir[dirlevel-1][parent_dir]
+        parent_dirinfo['children'].add(dir_path)
     # extract just the stuff tally_new_file() needs to know
     dirinfo = dirinfo_by_dirlevel_by_dir[dirlevel][dir_path]
     file_level = len(filepath_list)-2
@@ -185,7 +195,7 @@ def get_initial_dirinfo(dir_path, parent_dir):
             'this_filecount': 0, 'this_size': 0,
             'sum_age_lastaccess':0, 'sum_age_lastmodified':0,'sum_age_lastaccess_squared':0, 'sum_age_lastmodified_squared':0,
             'max_level':0,
-            'done': False}
+            'children':set(), 'done': False}
 
 def get_output_header():
     # gives field names and their ordering used in the output file.
@@ -351,7 +361,7 @@ def main():
     os.makedirs(tmpdir,exist_ok = True)
 
     #infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_cga_home_marniell__2019_08_07__11_21_14.files.txt'
-    # infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_pandora__2019_08_28__10_19_55.files.txt'
+    #infile = '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/dirscan/xchip_pandora__2019_08_28__10_19_55.files.txt'
     # infile = '/sysman/scratch/apsg/meyerson-stats/old/cga_meyerson__2019_08_20__13_48_36.files.txt'
     # tmpdir = '/broad/hptmp/gsaksena'
     annot_file_scan(infile, tmpdir)
@@ -360,3 +370,4 @@ if __name__ == '__main__':
     main()
 
     #cProfile.run('main()')
+
