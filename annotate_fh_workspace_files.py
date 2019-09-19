@@ -18,7 +18,7 @@ scan_paths = ['/xchip/tcga/cleanup/all_disks_2019-08-08/scans/cga_fh__2019_08_08
               '/sysman/scratch/apsg/alosada/gsaksena/cgastorage/old/scans5/fh_subscription-Getz-PCAWG__2019_08_28__05_58_21.files.txt',
               ]
 
-out_path = '/xchip/tcga/cleanup/all_disks_2019-08-08/subsets/pcawg_workspace_data3.txt'
+out_path = '/xchip/tcga/cleanup/all_disks_2019-08-08/subsets/pcawg_workspace_data4.txt'
 
 def fix_filepath(filepath):
     # Replace problematic characters with their escaped version, so the process is fully reversible
@@ -86,10 +86,13 @@ for in_path in scan_paths:
 
 
 print('writing output')
-fieldnames = ['File_Status','Upload_Status','File_size','File_Type','Workspace_Name','Annotation_Type','Annotation_Name','Entity_Name',
-              'Canonical_Path','Firehose_Path','Object_Uri','filepath',
+fieldnames = ['filepath',
               'size','last_access','last_modified','username','groupname','group_readable','all_readable','symlink',
-              'nlink','inode','dupe','filepath_escaped','fract','cumfract','cumfractcat','ext','ext2','ext3']
+              'nlink','inode','dupe','filepath_escaped','fract','cumfract','cumfractcat','ext','ext2','ext3',
+              'File_Status', 'Upload_Status', 'File_size', 'File_Type', 'Workspace_Name', 'Annotation_Type',
+              'Annotation_Name', 'Entity_Name',
+              'Canonical_Path', 'Firehose_Path', 'Object_Uri',
+              ]
 #cga_util.dump_dict_table(out_path,metadata_by_datapath,fields=fieldnames)
 
 datapaths = list(metadata_by_datapath.keys())
