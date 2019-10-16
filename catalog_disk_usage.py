@@ -187,6 +187,13 @@ def get_dupe_boolean(numlinks,inodenum):
     return dupe
 
 def skip_dir(basedir, subdir):
+    do_all = False
+    
+
+
+    if do_all:
+        return False
+
     if subdir.endswith('-genepattern') or \
         subdir == 'tags' and basedir.endswith('CancerGenomeAnalysis') or \
         subdir == 'outfolder' and basedir == '/xchip/cga_home/zlin/CLL_PO1/Curveball/python_scripts' :
@@ -216,7 +223,7 @@ def process_new_dir(basedir, outpath_dirs):
         dir_stat = {
             'dir': dir,
             'size': info_by_dir[dir]['size'],
-            'files': info_by_dir[dir]['file_count'],
+            'numfiles': info_by_dir[dir]['file_count'],
             'last_access': info_by_dir[dir]['last_access'],
             'last_modified': info_by_dir[dir]['last_modified'],
         }
@@ -266,11 +273,13 @@ def process_new_file(filesize, last_access, last_modified):
 # Walk the directories and build the file information.
 ####################################################################
 
-def catalog_disk_usage(rootdir, outpath_files, outpath_dirs):
+def catalog_disk_usage(rootdir, outpath_files, outpath_dirs, outpath_symlinks):
     global verbose
     file_info_list = []
+    symlink_info_list = []
     i = 0
     new_file = True
+    symlink_new_file = True
 
     for (basedir, subdirs, fns) in os.walk(rootdir[:-1], topdown=True):
 
@@ -305,44 +314,72 @@ def catalog_disk_usage(rootdir, outpath_files, outpath_dirs):
                 print('lstat error on %s'%filepath)
                 continue
 
-            if not stat.S_ISREG(statinfo.st_mode):  # Only report for regular files; also skips symlinks.
-                continue
-
             (fixed_filepath, filepath_escaped) = fix_filepath(filepath)
-            filesize = statinfo.st_size
-            last_access = cga_util.get_timestamp(statinfo.st_atime)
-            last_modified = cga_util.get_timestamp(statinfo.st_mtime)
-            process_new_file(filesize, last_access, last_modified)
+            if stat.S_ISLNK(statinfo.st_mode):
+                link_target = os.path.realpath(filepath)
+                (fixed_link_target, link_target_escaped) = fix_filepath(link_target)
+                symlink_info = collections.OrderedDict({
+                    "filepath": fixed_filepath,
+                    "target": fixed_link_target,
+                    "filepath_escaped": filepath_escaped,
+                    "target_escaped": filepath_escaped,
+                })
+                symlink_info_list.append(symlink_info)
 
-            file_info = collections.OrderedDict({  # Py 3.6 dicts are ordered, but do this to ensure order in any py version.
-                "filepath": fixed_filepath,
-                "size": str(filesize),
-                "last_access": last_access,
-                "last_modified": last_modified,
-                "username": get_login_name(statinfo.st_uid),
-                "groupname": get_group_name(statinfo.st_gid), 
-                "group_readable": get_group_readable(statinfo.st_mode),
-                "all_readable": get_all_readable(statinfo.st_mode),
-                "symlink": get_is_symlink(statinfo.st_mode),
-                "nlink": statinfo.st_nlink,
-                "inode": get_inode_str(statinfo.st_ino),
-                "dupe": get_dupe_boolean(statinfo.st_nlink,get_inode_str(statinfo.st_ino)),
-                "filepath_escaped": filepath_escaped,
-            })
-                
-            file_info_list.append(file_info)
+                if len(symlink_info_list) >= 1000:
+                    write_to_csv(outpath_symlinks,symlink_info_list,symlink_new_file)
+                    symlink_new_file = False
+                    symlink_info_list.clear()
 
-            if verbose: # and (i % 1000 == 0):  # Track progress by viewing occasional output.
-                print("%d: %s"%(i,fixed_filepath))
+            elif stat.S_ISREG(statinfo.st_mode):  # Only report for regular files
 
-            if i%100000 == 0:  # Write to file in batches to keep file usually with complete lines
-                print("%d: %s"%(i,fixed_filepath))
-                write_to_csv(outpath_files, file_info_list, new_file)
-                new_file = False
-                file_info_list = []
+                filesize = statinfo.st_size
+                # filesize is actual consumeb bytes.  matches Google bucket charges, and 'byte_usage_no_overhead' in Bitstore
+                last_access = cga_util.get_timestamp(statinfo.st_atime)
+                last_modified = cga_util.get_timestamp(statinfo.st_mtime)
+                process_new_file(filesize, last_access, last_modified)
+                #TODO - allocated disk space as st_blksize * st_blocks
+                # This matches 'dr_byte_usage' but not 'byte_usage' which billing currently uses
+                # Doesn't make much sense to give block-based usage if billing doesn't use that either
+                #size_allocated = statinfo.st_blksize * statinfo.st_blocks
+
+                file_info = collections.OrderedDict({  # Py 3.6 dicts are ordered, but do this to ensure order in any py version.
+                    "filepath": fixed_filepath,
+                    "size": str(filesize),
+                    "last_access": last_access,
+                    "last_modified": last_modified,
+                    "username": get_login_name(statinfo.st_uid),
+                    "groupname": get_group_name(statinfo.st_gid),
+                    "group_readable": get_group_readable(statinfo.st_mode),
+                    "all_readable": get_all_readable(statinfo.st_mode),
+                    "symlink": get_is_symlink(statinfo.st_mode),
+                    "nlink": statinfo.st_nlink,
+                    "inode": get_inode_str(statinfo.st_ino),
+                    "dupe": get_dupe_boolean(statinfo.st_nlink,get_inode_str(statinfo.st_ino)),
+                    "filepath_escaped": filepath_escaped,
+                    #"size_allocated": size_allocated
+                })
+
+                file_info_list.append(file_info)
+
+                if verbose: # and (i % 1000 == 0):  # Track progress by viewing occasional output.
+                    print("%d: %s"%(i,fixed_filepath))
+
+                if i%100000 == 0:  # Write to file in batches to keep file usually with complete lines
+                    print("%d: %s"%(i,fixed_filepath))
+                    write_to_csv(outpath_files, file_info_list, new_file)
+                    new_file = False
+                    file_info_list = []
 
 
     write_to_csv(outpath_files, file_info_list, new_file)
+    if len(symlink_info_list) > 0:
+        write_to_csv(outpath_symlinks, symlink_info_list, symlink_new_file)
+    elif symlink_new_file:
+        # if no symlinks, make a stub file with just the header
+        with open(outpath_symlinks,'w') as ofid:
+            #TODO - clean up this bad form- header fields need to be kept in sync with above
+            ofid.write('filepath\ttarget\tfilepath_escaped\ttarget_escaped\n')
     # finish dir processing
     process_new_dir('',outpath_dirs)
 
@@ -375,8 +412,10 @@ def main():
     outpath_prefix = outpath + rootdir_cleaned + '_' + cga_util.get_timestamp()
     outpath_files = outpath_prefix + '.files.txt'
     outpath_dirs = outpath_prefix + '.dirs.txt'
+    outpath_symlinks = outpath_prefix + '.symlinks.txt'
     outpath_files_part = outpath_files + '.part'
     outpath_dirs_part = outpath_dirs + '.part'
+    outpath_symlinks_part = outpath_symlinks + '.part'
 
     global login_by_userid
     login_by_userid = {}
@@ -388,11 +427,12 @@ def main():
             login_by_userid[line[0]] = line[1]
             username_by_login[line[1]] = line[2]
     
-    catalog_disk_usage(rootdir, outpath_files_part, outpath_dirs_part)
+    catalog_disk_usage(rootdir, outpath_files_part, outpath_dirs_part, outpath_symlinks_part)
 
     # strip .part from output filenames
     os.rename(outpath_files_part, outpath_files)
     os.rename(outpath_dirs_part, outpath_dirs)
+    os.rename(outpath_symlinks_part, outpath_symlinks)
 
 
 if __name__ == '__main__':
