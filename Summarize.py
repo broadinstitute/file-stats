@@ -23,7 +23,7 @@ def TB_from_bytes(bytes):
 
 
 
-def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_extensions):
+def summarize_disk_usage(infile,outfile,login_by_userid,user_id,username_by_login,tally_extensions):
     binList = [1e6,1e9,1e10,1e11,1e12,1e21]
     binNameList = ["<1M","<1G","<10G","<100G","<1T",">1T"]
     cntBinNameList = ["Cnt" + s for s in binNameList]
@@ -66,6 +66,9 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_
             dupe = row.get('dupe','NA')
             if dupe not in ('0','False','NA') : #tolerate missing dupe field
                 continue
+            uid = row['uid']
+            if uid in user_id:
+                uid = user_id[uid]
             user = row['username']
             if user in login_by_userid:
                 user = login_by_userid[user]
@@ -94,30 +97,30 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_
             #     extension_key = None
 
 
-            log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+            log_file(uid, user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                      cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                      sizeAgeNameList,i)
-            log_file("_ALL_", row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+            log_file("_ALL_", "_ALL_", row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                      cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                      sizeAgeNameList,i)
             if tally_extensions:
                 if extension_key is not None:
-                    log_file(extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                    log_file(uid, extension_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                              cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                              sizeAgeNameList,i)
                 if extension_2_key is not None:
-                    log_file(extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                    log_file(uid, extension_2_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                              cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                              sizeAgeNameList,i)
                 if extension_3_key is not None:
-                    log_file(extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
+                    log_file(uid, extension_3_key, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList,
                              cntBinNameList, sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList,
                              sizeAgeNameList,i)
 
 
 
 # normalize
-    fieldnames = ["user","username","fileCnt","fileSize","TBfileSize","Last access","Last modified"]
+    fieldnames = ["uid","user","username","fileCnt","fileSize","TBfileSize","Last access","Last modified"]
     fieldnames.extend(cntBinNameList)
     fieldnames.extend(TBsizeBinNameList)
     fieldnames.extend(cntExtList)
@@ -159,7 +162,7 @@ def summarize_disk_usage(infile,outfile,login_by_userid,username_by_login,tally_
     #cga_util.dump_dict_table(outfile,info_by_user)
 
 
-def log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList, cntBinNameList,
+def log_file(uid, user, row, info_by_user, file_datestamp, login_by_userid, username_by_login, binList, cntBinNameList,
              sizeBinNameList, extList, cntExtList, sizeExtList, ageBinList, cntAgeNameList, sizeAgeNameList, i):
 
     try:
@@ -173,6 +176,7 @@ def log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_
 
     if user not in info_by_user:
         info_by_user[user] = Counter()
+        info_by_user[user]["uid"] = uid
         info_by_user[user]["user"] = user
         info_by_user[user]["username"] = username_by_login.get(user, 'NA')
         info_by_user[user]["Last access"] = "0"
@@ -208,6 +212,7 @@ def log_file(user, row, info_by_user, file_datestamp, login_by_userid, username_
 if __name__ == '__main__':
     infile = sys.argv[1]
 
+    user_id = {}
     login_by_userid = {}
     username_by_login = {}
     userdb_path = '/sysman/scratch/apsg/alosada/gsaksena/dev/users.csv' #'../users.csv'
@@ -215,6 +220,7 @@ if __name__ == '__main__':
         reader = csv.reader(fid,dialect='excel')
         for line in reader:
             login_by_userid[line[0]] = line[1]
+            user_id[line[1]] = line[0]  # save the uid
             username_by_login[line[1]] = line[2]
 
     ext = '.files.txt'
@@ -226,7 +232,7 @@ if __name__ == '__main__':
     tally_extensions = True
 
 
-    summarize_disk_usage(infile,outfile_part,login_by_userid,username_by_login, tally_extensions)
+    summarize_disk_usage(infile,outfile_part,login_by_userid,user_id,username_by_login, tally_extensions)
     #cProfile.run('summarize_disk_usage(infile,outfile,login_by_userid,username_by_login)')
 
     os.rename(outfile_part, outfile)
