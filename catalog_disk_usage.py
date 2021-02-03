@@ -119,6 +119,7 @@ def fix_filepath(filepath):
 
     return fixed_filepath, filepath_escaped
 
+
 def fix_filepath_old(filepath):
     fixed_filepath = filepath.replace('\n',r'\n')  # Add more fixes, perhaps from ejon and Sam Novod experiences.
     fixed_filepath = fixed_filepath.replace('\t',r'\t')
@@ -348,7 +349,9 @@ def catalog_disk_usage(rootdir, outpath_files, outpath_dirs, outpath_symlinks):
                     "size": str(filesize),
                     "last_access": last_access,
                     "last_modified": last_modified,
+                    "uid": statinfo.st_uid,
                     "username": get_login_name(statinfo.st_uid),
+                    "gid": statinfo.st_gid,
                     "groupname": get_group_name(statinfo.st_gid),
                     "group_readable": get_group_readable(statinfo.st_mode),
                     "all_readable": get_all_readable(statinfo.st_mode),
