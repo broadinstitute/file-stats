@@ -5,6 +5,7 @@ import fnmatch
 import argparse
 import cga_util
 import logging
+<<<<<<< HEAD
 import config as cfg
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -15,6 +16,15 @@ from google.oauth2 import service_account
 # 3. Running Summarize.py with the outputted .annot.files.txt
 # 4. Locating and downloading the .annot.summ.txt
 # 5. Importing the .annot.summ.txt file into google sheets
+=======
+import logging.handlers
+import pickle
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+>>>>>>> 8782c29... added google api auths- wip not working yet
 
 
 def parse_args():
@@ -38,6 +48,7 @@ def find(pattern, path):
     return result
 
 
+<<<<<<< HEAD
 def auth():
     """ Authorizes service account with Google Sheets API. """
     try:
@@ -127,13 +138,69 @@ def parse_files(file, slice_index, outpath):
     files_list = find(pattern, outpath)  # grabs files that matches the minute last ran
 
     return files_list
+=======
+def get_user_credentials():
+    """ Returns the auth tokens for the Sheets API via the client_id file. """
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    return creds
+
+
+def write_to_sheets(file, credentials):
+    """ Writes .annot.summ.txt data into a google sheet. """
+    service = build('sheets', 'v4', credentials=credentials)
+    # create spreadsheet
+    logging.info("Creating spreadsheet...")
+    spreadsheet = {
+        'properties': {
+            'title': file  # TODO: slice filepath from string
+        }
+    }
+    spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
+    logging.debug('Spreadsheet ID: {0}'.format(spreadsheet.get('spreadsheetId')))
+
+    # TODO: append every line from .annot.summ.txt file into sheet
+    get_file_contents(file)
+
+
+def get_file_contents(file):
+    logging.debug("Opening file: {}".format(file))
+
+    contents = []
+    f = open(file, 'r')
+    for line in f:
+        contents.append(line)
+    f.close()
+
+    return contents
+>>>>>>> 8782c29... added google api auths- wip not working yet
 
 
 def main():
     """ Runs catalog_disk_usage.py, annotate_scan.py, and Summarize.py in this respective order.
     Also dumps the .annot.summ.txt file to a Google Sheet. """
     logger = logging.getLogger("")
+<<<<<<< HEAD
     logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
+=======
+    logger.setLevel(logging.DEBUG)
+>>>>>>> 8782c29... added google api auths- wip not working yet
 
     args = parse_args()
     rootdir = args.rootdir  # root directory passed from user
@@ -154,7 +221,11 @@ def main():
 
     # catalog_disc_usage.py
     cat_disk = "python3 catalog_disk_usage.py -r {} -o {}".format(rootdir, outpath)
+<<<<<<< HEAD
     logging.info("#=================   catalog_disk_usage.py   =================#")
+=======
+    logging.info("@@@@@@@@@@@@@ catalog_disk_usage.py @@@@@@@@@@@@@")
+>>>>>>> 8782c29... added google api auths- wip not working yet
     logging.debug(cat_disk)
 
     try:
@@ -163,7 +234,17 @@ def main():
         logging.error(e)
         # TODO: add email support
 
+<<<<<<< HEAD
     outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
+=======
+
+    # surgically removing the seconds timestamp to find the .files.txt file
+    out_r1 = len(outpath_name) - 12
+    out_r2 = out_r1 + 2
+    f_seconds = outpath_name[out_r1:out_r2]  # string slicing
+    pattern = outpath_name.replace(f_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
+    outpath_files = find(pattern, outpath)  # grab the first file that matches the minute last ran
+>>>>>>> 8782c29... added google api auths- wip not working yet
 
     if not outpath_files:  # check if outpath_files exist
         raise Exception("No .files.txt file found!")
@@ -185,9 +266,14 @@ def main():
 
     # annotate_scan.py
     annot_scan = "python3 annotate_scan.py {}".format(outpath_file)
+<<<<<<< HEAD
     logging.info("#=================     annotate_scan.py     =================#")
     logging.debug(annot_scan)
     
+=======
+    logging.info("@@@@@@@@@@@@@ annotate_scan.py @@@@@@@@@@@@@")
+    logging.debug(annot_scan)
+>>>>>>> 8782c29... added google api auths- wip not working yet
     try:
         os.system(annot_scan)
     except Exception as e:
@@ -195,16 +281,29 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
     a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
+=======
+    a_out_r1 = len(annot_outpath_name) - 18
+    a_out_r2 = a_out_r1 + 2
+    a_seconds = annot_outpath_name[a_out_r1:a_out_r2]  # string slicing
+    pattern = annot_outpath_name.replace(a_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
+    a_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
+>>>>>>> 8782c29... added google api auths- wip not working yet
     logging.debug(".annot.files.txt: {}".format(a_outpath_files))
     a_outpath_file = max(a_outpath_files)  # grabs the file that is the latest one in the last minute
     logging.debug("Most recent .annot.files.txt: {}".format(a_outpath_file))
 
     # Summarize.py
     summarize = "python3 Summarize.py {}".format(a_outpath_file)
+<<<<<<< HEAD
     logging.info("#=================       Summarize.py       =================#")
     logging.debug(summarize)
     
+=======
+    logging.info("@@@@@@@@@@@@@ Summarize.py @@@@@@@@@@@@@")
+    logging.debug(summarize)
+>>>>>>> 8782c29... added google api auths- wip not working yet
     try:
         os.system(summarize)
     except Exception as e:
@@ -212,6 +311,7 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
     
     s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
     logging.debug(".annot.summ.txt: {}".format(s_outpath_files))
@@ -223,6 +323,22 @@ def main():
     write_to_sheets(s_outpath_file)
 
     logging.info("#=================       END OF SCRIPT       =================#")
+=======
+    s_out_r1 = len(summ_outpath_name) - 17
+    s_out_r2 = s_out_r1 + 2
+    s_seconds = summ_outpath_name[s_out_r1:s_out_r2]  # string slicing
+    pattern = summ_outpath_name.replace(s_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
+    s_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
+    logging.debug(".annot.summ.txt: {}".format(a_outpath_files))
+    s_outpath_file = max(s_outpath_files)  # grabs the file that is the latest one in the last minute
+    logging.debug("Most recent .annot.summ.txt: {}".format(a_outpath_file))
+
+
+    logging.info("Importing {} to google sheets...")
+    write_to_sheets(s_outpath_file, get_user_credentials())
+
+    logging.info("@@@@@@@@@@@@@ END OF SCRIPT @@@@@@@@@@@@@")
+>>>>>>> 8782c29... added google api auths- wip not working yet
 
 
 if __name__ == '__main__':

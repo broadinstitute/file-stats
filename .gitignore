@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 *client_secret.json
 *config.py
+=======
+/credentials.json
+>>>>>>> 8782c29... added google api auths- wip not working yet
