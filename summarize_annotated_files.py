@@ -5,13 +5,9 @@ import fnmatch
 import argparse
 import cga_util
 import logging
-import logging.handlers
-import pickle
+import config as cfg
 from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+from google.oauth2 import service_account
 
 
 def parse_args():
@@ -35,63 +31,102 @@ def find(pattern, path):
     return result
 
 
-def get_user_credentials():
-    """ Returns the auth tokens for the Sheets API via the client_id file. """
-    creds = None
-    # The file token.pickle stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-    return creds
+def auth():
+    """ Authorizes service account with Google Sheets API. """
+    try:
+        scopes = cfg.SCOPES
+        secret = os.path.join(os.getcwd(), cfg.CLIENT_SECRET)
+        credentials = service_account.Credentials.from_service_account_file(secret, scopes=scopes)
+        service = build('sheets', 'v4', credentials=credentials, cache_discovery=False)
+
+        return service
+
+    except Exception as e:
+        logging.error(e)
 
 
-def write_to_sheets(file, credentials):
+
+def write_to_sheets(file):
     """ Writes .annot.summ.txt data into a google sheet. """
-    service = build('sheets', 'v4', credentials=credentials)
-    # create spreadsheet
-    logging.info("Creating spreadsheet...")
-    spreadsheet = {
-        'properties': {
-            'title': file  # TODO: slice filepath from string
+    spreadsheet_id = cfg.SPREADSHEET_ID
+    service = auth()  
+    file_name = os.path.basename(file)
+
+    logging.info("Creating new sheet...")
+    try:
+        sheet_body = {
+            'requests': [{
+                'addSheet': {
+                    'properties': {
+                        'title': file_name,
+                    }
+                }
+            }]
         }
-    }
-    spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    logging.debug('Spreadsheet ID: {0}'.format(spreadsheet.get('spreadsheetId')))
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=sheet_body
+        ).execute()
 
-    # TODO: append every line from .annot.summ.txt file into sheet
-    get_file_contents(file)
+    except Exception as e:
+        logging.error(e)
+    
+    
+    logging.info("Writing to spreadsheet...")
+    try:
+        # getting new sheet data
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()  
+        sheets = sheet_metadata.get('sheets', '')
+        range = sheets[len(sheets) - 1].get("properties", {}).get("title")  # set the newly created sheet as the range
+        # ssheet_id = sheets[len(sheets) - 1].get("properties", {}).get("sheetId")
+        
+        values = get_file_contents(file)  # gets contents of files and stores every line in a list
+        body = {
+           'values': values
+        }
+        result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id, range=range, body=body, valueInputOption='USER_ENTERED'
+        ).execute()
 
+        logging.debug('{0} cells appended.'.format(result \
+                                       .get('updates') \
+                                       .get('updatedCells')))
 
+    except Exception as e:
+        logging.error(e)
+    
+    
 def get_file_contents(file):
+    """ Reads every line in a file and returns it as a 2d list. """
     logging.debug("Opening file: {}".format(file))
 
-    contents = []
-    f = open(file, 'r')
-    for line in f:
-        contents.append(line)
-    f.close()
+    values = []
+    try:
+        with open(file, 'r') as f:
+            for line in f:
+                values.append(line.split('\t'))
+    except Exception as e:
+        logging.error(e)
 
-    return contents
+    return values
+
+
+def parse_files(file, slice_index, outpath):
+    """ Parses the outpath directory to find every file ran in the last minute. """
+    start_range = len(file) - slice_index
+    end_range = start_range + 2
+    seconds = file[start_range:end_range]  # string slicing
+    pattern = file.replace(seconds, '*')  # replacing the seconds in the timestamp with a wildcard
+    files_list = find(pattern, outpath)  # grabs files that matches the minute last ran
+
+    return files_list
 
 
 def main():
     """ Runs catalog_disk_usage.py, annotate_scan.py, and Summarize.py in this respective order.
     Also dumps the .annot.summ.txt file to a Google Sheet. """
     logger = logging.getLogger("")
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
 
     args = parse_args()
     rootdir = args.rootdir  # root directory passed from user
@@ -112,7 +147,7 @@ def main():
 
     # catalog_disc_usage.py
     cat_disk = "python3 catalog_disk_usage.py -r {} -o {}".format(rootdir, outpath)
-    logging.info("@@@@@@@@@@@@@ catalog_disk_usage.py @@@@@@@@@@@@@")
+    logging.info("#=================   catalog_disk_usage.py   =================#")
     logging.debug(cat_disk)
 
     try:
@@ -121,13 +156,7 @@ def main():
         logging.error(e)
         # TODO: add email support
 
-
-    # surgically removing the seconds timestamp to find the .files.txt file
-    out_r1 = len(outpath_name) - 12
-    out_r2 = out_r1 + 2
-    f_seconds = outpath_name[out_r1:out_r2]  # string slicing
-    pattern = outpath_name.replace(f_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
-    outpath_files = find(pattern, outpath)  # grab the first file that matches the minute last ran
+    outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
 
     if not outpath_files:  # check if outpath_files exist
         raise Exception("No .files.txt file found!")
@@ -149,8 +178,9 @@ def main():
 
     # annotate_scan.py
     annot_scan = "python3 annotate_scan.py {}".format(outpath_file)
-    logging.info("@@@@@@@@@@@@@ annotate_scan.py @@@@@@@@@@@@@")
+    logging.info("#=================     annotate_scan.py     =================#")
     logging.debug(annot_scan)
+    
     try:
         os.system(annot_scan)
     except Exception as e:
@@ -158,19 +188,16 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
-    a_out_r1 = len(annot_outpath_name) - 18
-    a_out_r2 = a_out_r1 + 2
-    a_seconds = annot_outpath_name[a_out_r1:a_out_r2]  # string slicing
-    pattern = annot_outpath_name.replace(a_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
-    a_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
+    a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
     logging.debug(".annot.files.txt: {}".format(a_outpath_files))
     a_outpath_file = max(a_outpath_files)  # grabs the file that is the latest one in the last minute
     logging.debug("Most recent .annot.files.txt: {}".format(a_outpath_file))
 
     # Summarize.py
     summarize = "python3 Summarize.py {}".format(a_outpath_file)
-    logging.info("@@@@@@@@@@@@@ Summarize.py @@@@@@@@@@@@@")
+    logging.info("#=================       Summarize.py       =================#")
     logging.debug(summarize)
+    
     try:
         os.system(summarize)
     except Exception as e:
@@ -178,20 +205,17 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
-    s_out_r1 = len(summ_outpath_name) - 17
-    s_out_r2 = s_out_r1 + 2
-    s_seconds = summ_outpath_name[s_out_r1:s_out_r2]  # string slicing
-    pattern = summ_outpath_name.replace(s_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
-    s_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
-    logging.debug(".annot.summ.txt: {}".format(a_outpath_files))
+    
+    s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
+    logging.debug(".annot.summ.txt: {}".format(s_outpath_files))
     s_outpath_file = max(s_outpath_files)  # grabs the file that is the latest one in the last minute
-    logging.debug("Most recent .annot.summ.txt: {}".format(a_outpath_file))
+    logging.debug("Most recent .annot.summ.txt: {}".format(s_outpath_file))
 
+    logging.info("#================= Importing to Google Sheets =================#")
+    logging.debug("Importing: {}".format(s_outpath_file))
+    write_to_sheets(s_outpath_file)
 
-    logging.info("Importing {} to google sheets...")
-    write_to_sheets(s_outpath_file, get_user_credentials())
-
-    logging.info("@@@@@@@@@@@@@ END OF SCRIPT @@@@@@@@@@@@@")
+    logging.info("#=================       END OF SCRIPT       =================#")
 
 
 if __name__ == '__main__':
