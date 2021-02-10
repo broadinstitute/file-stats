@@ -6,6 +6,7 @@ import argparse
 import cga_util
 import logging
 <<<<<<< HEAD
+<<<<<<< HEAD
 import config as cfg
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -25,6 +26,11 @@ from google.auth.transport.requests import Request
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+import config as cfg
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+>>>>>>> 19c1fd6... finished google sheets api integration
 
 
 def parse_args():
@@ -49,6 +55,9 @@ def find(pattern, path):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 19c1fd6... finished google sheets api integration
 def auth():
     """ Authorizes service account with Google Sheets API. """
     try:
@@ -65,6 +74,7 @@ def auth():
 
 
 def write_to_sheets(file):
+<<<<<<< HEAD
     """ Writes .annot.summ.txt data into a google sheet. """
     spreadsheet_id = cfg.SPREADSHEET_ID
     service = auth()  
@@ -163,33 +173,86 @@ def get_user_credentials():
 
 
 def write_to_sheets(file, credentials):
+=======
+>>>>>>> 19c1fd6... finished google sheets api integration
     """ Writes .annot.summ.txt data into a google sheet. """
-    service = build('sheets', 'v4', credentials=credentials)
-    # create spreadsheet
-    logging.info("Creating spreadsheet...")
-    spreadsheet = {
-        'properties': {
-            'title': file  # TODO: slice filepath from string
+    spreadsheet_id = cfg.SPREADSHEET_ID
+    service = auth()  
+    file_name = os.path.basename(file)
+
+    logging.info("Creating new sheet...")
+    try:
+        sheet_body = {
+            'requests': [{
+                'addSheet': {
+                    'properties': {
+                        'title': file_name,
+                    }
+                }
+            }]
         }
-    }
-    spreadsheet = service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-    logging.debug('Spreadsheet ID: {0}'.format(spreadsheet.get('spreadsheetId')))
+        response = service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=sheet_body
+        ).execute()
 
-    # TODO: append every line from .annot.summ.txt file into sheet
-    get_file_contents(file)
+    except Exception as e:
+        logging.error(e)
+    
+    
+    logging.info("Writing to spreadsheet...")
+    try:
+        # getting new sheet data
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()  
+        sheets = sheet_metadata.get('sheets', '')
+        range = sheets[len(sheets) - 1].get("properties", {}).get("title")  # set the newly created sheet as the range
+        # ssheet_id = sheets[len(sheets) - 1].get("properties", {}).get("sheetId")
+        
+        values = get_file_contents(file)  # gets contents of files and stores every line in a list
+        body = {
+           'values': values
+        }
+        result = service.spreadsheets().values().append(
+            spreadsheetId=spreadsheet_id, range=range, body=body, valueInputOption='USER_ENTERED'
+        ).execute()
 
+        logging.debug('{0} cells appended.'.format(result \
+                                       .get('updates') \
+                                       .get('updatedCells')))
 
+    except Exception as e:
+        logging.error(e)
+    
+    
 def get_file_contents(file):
+    """ Reads every line in a file and returns it as a 2d list. """
     logging.debug("Opening file: {}".format(file))
 
-    contents = []
-    f = open(file, 'r')
-    for line in f:
-        contents.append(line)
-    f.close()
+    values = []
+    try:
+        with open(file, 'r') as f:
+            for line in f:
+                values.append(line.split('\t'))
+    except Exception as e:
+        logging.error(e)
 
+    return values
+
+
+<<<<<<< HEAD
     return contents
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+def parse_files(file, slice_index, outpath):
+    """ Parses the outpath directory to find every file ran in the last minute. """
+    start_range = len(file) - slice_index
+    end_range = start_range + 2
+    seconds = file[start_range:end_range]  # string slicing
+    pattern = file.replace(seconds, '*')  # replacing the seconds in the timestamp with a wildcard
+    files_list = find(pattern, outpath)  # grabs files that matches the minute last ran
+
+    return files_list
+>>>>>>> 19c1fd6... finished google sheets api integration
 
 
 def main():
@@ -197,10 +260,14 @@ def main():
     Also dumps the .annot.summ.txt file to a Google Sheet. """
     logger = logging.getLogger("")
 <<<<<<< HEAD
+<<<<<<< HEAD
     logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
 =======
     logger.setLevel(logging.DEBUG)
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
+>>>>>>> 19c1fd6... finished google sheets api integration
 
     args = parse_args()
     rootdir = args.rootdir  # root directory passed from user
@@ -222,10 +289,14 @@ def main():
     # catalog_disc_usage.py
     cat_disk = "python3 catalog_disk_usage.py -r {} -o {}".format(rootdir, outpath)
 <<<<<<< HEAD
+<<<<<<< HEAD
     logging.info("#=================   catalog_disk_usage.py   =================#")
 =======
     logging.info("@@@@@@@@@@@@@ catalog_disk_usage.py @@@@@@@@@@@@@")
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    logging.info("#=================   catalog_disk_usage.py   =================#")
+>>>>>>> 19c1fd6... finished google sheets api integration
     logging.debug(cat_disk)
 
     try:
@@ -234,6 +305,7 @@ def main():
         logging.error(e)
         # TODO: add email support
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
 =======
@@ -245,6 +317,9 @@ def main():
     pattern = outpath_name.replace(f_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
     outpath_files = find(pattern, outpath)  # grab the first file that matches the minute last ran
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
+>>>>>>> 19c1fd6... finished google sheets api integration
 
     if not outpath_files:  # check if outpath_files exist
         raise Exception("No .files.txt file found!")
@@ -267,6 +342,7 @@ def main():
     # annotate_scan.py
     annot_scan = "python3 annotate_scan.py {}".format(outpath_file)
 <<<<<<< HEAD
+<<<<<<< HEAD
     logging.info("#=================     annotate_scan.py     =================#")
     logging.debug(annot_scan)
     
@@ -274,6 +350,11 @@ def main():
     logging.info("@@@@@@@@@@@@@ annotate_scan.py @@@@@@@@@@@@@")
     logging.debug(annot_scan)
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    logging.info("#=================     annotate_scan.py     =================#")
+    logging.debug(annot_scan)
+    
+>>>>>>> 19c1fd6... finished google sheets api integration
     try:
         os.system(annot_scan)
     except Exception as e:
@@ -281,6 +362,7 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
 <<<<<<< HEAD
     a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
 =======
@@ -290,12 +372,16 @@ def main():
     pattern = annot_outpath_name.replace(a_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
     a_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
+>>>>>>> 19c1fd6... finished google sheets api integration
     logging.debug(".annot.files.txt: {}".format(a_outpath_files))
     a_outpath_file = max(a_outpath_files)  # grabs the file that is the latest one in the last minute
     logging.debug("Most recent .annot.files.txt: {}".format(a_outpath_file))
 
     # Summarize.py
     summarize = "python3 Summarize.py {}".format(a_outpath_file)
+<<<<<<< HEAD
 <<<<<<< HEAD
     logging.info("#=================       Summarize.py       =================#")
     logging.debug(summarize)
@@ -304,6 +390,11 @@ def main():
     logging.info("@@@@@@@@@@@@@ Summarize.py @@@@@@@@@@@@@")
     logging.debug(summarize)
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    logging.info("#=================       Summarize.py       =================#")
+    logging.debug(summarize)
+    
+>>>>>>> 19c1fd6... finished google sheets api integration
     try:
         os.system(summarize)
     except Exception as e:
@@ -311,6 +402,7 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
 <<<<<<< HEAD
     
     s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
@@ -330,15 +422,24 @@ def main():
     pattern = summ_outpath_name.replace(s_seconds, '*')  # replacing the seconds in the timestamp with a wildcard
     s_outpath_files = find(pattern, outpath)  # grab the files that were run in the same minute
     logging.debug(".annot.summ.txt: {}".format(a_outpath_files))
+=======
+    
+    s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
+    logging.debug(".annot.summ.txt: {}".format(s_outpath_files))
+>>>>>>> 19c1fd6... finished google sheets api integration
     s_outpath_file = max(s_outpath_files)  # grabs the file that is the latest one in the last minute
-    logging.debug("Most recent .annot.summ.txt: {}".format(a_outpath_file))
+    logging.debug("Most recent .annot.summ.txt: {}".format(s_outpath_file))
 
+    logging.info("#================= Importing to Google Sheets =================#")
+    logging.debug("Importing: {}".format(s_outpath_file))
+    write_to_sheets(s_outpath_file)
 
-    logging.info("Importing {} to google sheets...")
-    write_to_sheets(s_outpath_file, get_user_credentials())
-
+<<<<<<< HEAD
     logging.info("@@@@@@@@@@@@@ END OF SCRIPT @@@@@@@@@@@@@")
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+    logging.info("#=================       END OF SCRIPT       =================#")
+>>>>>>> 19c1fd6... finished google sheets api integration
 
 
 if __name__ == '__main__':

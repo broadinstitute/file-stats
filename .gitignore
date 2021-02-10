@@ -1,6 +1,11 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 *client_secret.json
 *config.py
 =======
 /credentials.json
 >>>>>>> 8782c29... added google api auths- wip not working yet
+=======
+/client_secret.json
+/config.py
+>>>>>>> 19c1fd6... finished google sheets api integration
