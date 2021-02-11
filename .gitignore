@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 *client_secret.json
 *config.py
 =======
@@ -9,3 +10,7 @@
 /client_secret.json
 /config.py
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+*client_secret.json
+*config.py
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22

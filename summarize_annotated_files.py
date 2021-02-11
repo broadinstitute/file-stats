@@ -7,6 +7,9 @@ import cga_util
 import logging
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 import config as cfg
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -17,6 +20,7 @@ from google.oauth2 import service_account
 # 3. Running Summarize.py with the outputted .annot.files.txt
 # 4. Locating and downloading the .annot.summ.txt
 # 5. Importing the .annot.summ.txt file into google sheets
+<<<<<<< HEAD
 =======
 import logging.handlers
 import pickle
@@ -31,6 +35,8 @@ import config as cfg
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 
 
 def parse_args():
@@ -56,8 +62,11 @@ def find(pattern, path):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 def auth():
     """ Authorizes service account with Google Sheets API. """
     try:
@@ -75,6 +84,9 @@ def auth():
 
 def write_to_sheets(file):
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     """ Writes .annot.summ.txt data into a google sheet. """
     spreadsheet_id = cfg.SPREADSHEET_ID
     service = auth()  
@@ -148,6 +160,7 @@ def parse_files(file, slice_index, outpath):
     files_list = find(pattern, outpath)  # grabs files that matches the minute last ran
 
     return files_list
+<<<<<<< HEAD
 =======
 def get_user_credentials():
     """ Returns the auth tokens for the Sheets API via the client_id file. """
@@ -253,12 +266,15 @@ def parse_files(file, slice_index, outpath):
 
     return files_list
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 
 
 def main():
     """ Runs catalog_disk_usage.py, annotate_scan.py, and Summarize.py in this respective order.
     Also dumps the .annot.summ.txt file to a Google Sheet. """
     logger = logging.getLogger("")
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
@@ -268,6 +284,9 @@ def main():
 =======
     logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    logger.setLevel(logging.DEBUG)  # set level of logging to display in the console
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 
     args = parse_args()
     rootdir = args.rootdir  # root directory passed from user
@@ -290,6 +309,7 @@ def main():
     cat_disk = "python3 catalog_disk_usage.py -r {} -o {}".format(rootdir, outpath)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     logging.info("#=================   catalog_disk_usage.py   =================#")
 =======
     logging.info("@@@@@@@@@@@@@ catalog_disk_usage.py @@@@@@@@@@@@@")
@@ -297,6 +317,9 @@ def main():
 =======
     logging.info("#=================   catalog_disk_usage.py   =================#")
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    logging.info("#=================   catalog_disk_usage.py   =================#")
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     logging.debug(cat_disk)
 
     try:
@@ -305,6 +328,7 @@ def main():
         logging.error(e)
         # TODO: add email support
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
@@ -320,6 +344,9 @@ def main():
 =======
     outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    outpath_files = parse_files(outpath_name, 12, outpath)  # grab all the files ran within the last minute
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 
     if not outpath_files:  # check if outpath_files exist
         raise Exception("No .files.txt file found!")
@@ -343,6 +370,7 @@ def main():
     annot_scan = "python3 annotate_scan.py {}".format(outpath_file)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     logging.info("#=================     annotate_scan.py     =================#")
     logging.debug(annot_scan)
     
@@ -355,6 +383,11 @@ def main():
     logging.debug(annot_scan)
     
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    logging.info("#=================     annotate_scan.py     =================#")
+    logging.debug(annot_scan)
+    
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     try:
         os.system(annot_scan)
     except Exception as e:
@@ -362,6 +395,7 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
@@ -375,12 +409,16 @@ def main():
 =======
     a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    a_outpath_files = parse_files(annot_outpath_name, 18, outpath)
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     logging.debug(".annot.files.txt: {}".format(a_outpath_files))
     a_outpath_file = max(a_outpath_files)  # grabs the file that is the latest one in the last minute
     logging.debug("Most recent .annot.files.txt: {}".format(a_outpath_file))
 
     # Summarize.py
     summarize = "python3 Summarize.py {}".format(a_outpath_file)
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     logging.info("#=================       Summarize.py       =================#")
@@ -395,6 +433,11 @@ def main():
     logging.debug(summarize)
     
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    logging.info("#=================       Summarize.py       =================#")
+    logging.debug(summarize)
+    
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     try:
         os.system(summarize)
     except Exception as e:
@@ -402,6 +445,7 @@ def main():
         # TODO: add email support
 
     # surgically removing the seconds timestamp to find the .annot.files.txt file
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     
@@ -427,6 +471,11 @@ def main():
     s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
     logging.debug(".annot.summ.txt: {}".format(s_outpath_files))
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    
+    s_outpath_files = parse_files(summ_outpath_name, 17, outpath)
+    logging.debug(".annot.summ.txt: {}".format(s_outpath_files))
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
     s_outpath_file = max(s_outpath_files)  # grabs the file that is the latest one in the last minute
     logging.debug("Most recent .annot.summ.txt: {}".format(s_outpath_file))
 
@@ -435,11 +484,15 @@ def main():
     write_to_sheets(s_outpath_file)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     logging.info("@@@@@@@@@@@@@ END OF SCRIPT @@@@@@@@@@@@@")
 >>>>>>> 8782c29... added google api auths- wip not working yet
 =======
     logging.info("#=================       END OF SCRIPT       =================#")
 >>>>>>> 19c1fd6... finished google sheets api integration
+=======
+    logging.info("#=================       END OF SCRIPT       =================#")
+>>>>>>> 3570b7f11d84ad10222b52fba42ea3a4a7f45b22
 
 
 if __name__ == '__main__':
