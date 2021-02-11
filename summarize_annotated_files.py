@@ -9,6 +9,13 @@ import config as cfg
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
+# This script is here to streamline and automate the manual process of:
+# 1. Running catalog_disk_usage.py
+# 2. Running annotate_scan.py with the outputted .files.txt
+# 3. Running Summarize.py with the outputted .annot.files.txt
+# 4. Locating and downloading the .annot.summ.txt
+# 5. Importing the .annot.summ.txt file into google sheets
+
 
 def parse_args():
     """ Parse all the arguments from the command line. """
